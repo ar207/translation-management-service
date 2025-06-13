@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTranslation;
 use App\Models\Translation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TranslationController extends Controller
@@ -273,30 +274,40 @@ class TranslationController extends Controller
      */
     public function export()
     {
-        $response = new StreamedResponse(function () {
-            echo '[';
-            $first = true;
+        $translations = DB::table('translations')
+            ->join('locales', 'translations.locale_id', '=', 'locales.id')
+            ->select('translations.key', 'translations.content', 'locales.short_code')
+            ->get()
+            ->groupBy('short_code');
 
-            $records = DB::table('translations')
-                ->join('locales as l', 'l.id', '=', 'translations.locale_id')
-                ->select('translations.key', 'l.short_code as locale', 'translations.content', 'translations.tags')
-                ->orderBy('translations.id')
-                ->cursor(); // lazy-load rows one at a time
+        $langPath = public_path('lang/generated');
 
-            foreach ($records as $translation) {
-                if (!$first) {
-                    echo ',';
-                }
-                echo json_encode($translation, JSON_UNESCAPED_UNICODE);
-                $first = false;
+        if (!File::exists($langPath)) {
+            File::makeDirectory($langPath, 0755, true);
+        }
+
+        $files = [];
+
+        foreach ($translations as $locale => $entries) {
+            $data = [];
+
+            foreach ($entries as $entry) {
+                $data[$entry->key] = $entry->content;
             }
 
-            echo ']';
-        });
+            $fileName = "{$locale}.json";
+            File::put("{$langPath}/{$fileName}", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
-        $response->headers->set('Content-Type', 'application/json');
-        $response->headers->set('Content-Disposition', 'attachment; filename="translations.json"');
+            $files[] = [
+                'name' => $fileName,
+                'url' => url("lang/generated/{$fileName}"), // ✅ Downloadable link
+            ];
+        }
 
-        return $response;
+        return response()->json([
+            'success' => true,
+            'message' => 'Locale files exported successfully.',
+            'files' => $files,
+        ]);
     }
 }
