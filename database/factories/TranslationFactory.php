@@ -18,6 +18,7 @@ class TranslationFactory extends Factory
     {
         return [
             'key' => $this->faker->unique()->slug,
+            'locale_code' => $this->faker->randomElement(['en', 'fr', 'es']),
             'locale_id' => $this->faker->randomElement(['1', '2', '3']),
             'content' => $this->faker->sentence,
             'tags' => [$this->faker->randomElement(['web', 'mobile', 'desktop'])],

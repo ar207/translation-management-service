@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTranslation;
 use App\Http\Requests\UpdateTranslation;
+use App\Models\Locale;
 use App\Models\Translation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -123,6 +124,8 @@ class TranslationController extends Controller
     {
         $data = $request->all();
         try {
+            $locale = Locale::query()->find($data['locale_id']);
+            $data['locale_code'] = $locale->short_code;
             Translation::query()->create($data);
 
             $this->message = 'Translation Created.';
@@ -195,7 +198,8 @@ class TranslationController extends Controller
         $data = $request->all();
         try {
             $translation = Translation::query()->findOrFail($id);
-
+            $locale = Locale::query()->find($data['locale_id']);
+            $data['locale_code'] = $locale->short_code;
             $translation->update($data);
 
             $this->message = 'Translation Updated.';
@@ -274,40 +278,18 @@ class TranslationController extends Controller
      */
     public function export()
     {
-        $translations = DB::table('translations')
-            ->join('locales', 'translations.locale_id', '=', 'locales.id')
-            ->select('translations.key', 'translations.content', 'locales.short_code')
-            ->get()
-            ->groupBy('short_code');
-
-        $langPath = public_path('lang/generated');
-
-        if (!File::exists($langPath)) {
-            File::makeDirectory($langPath, 0755, true);
-        }
-
-        $files = [];
-
-        foreach ($translations as $locale => $entries) {
-            $data = [];
-
-            foreach ($entries as $entry) {
-                $data[$entry->key] = $entry->content;
-            }
-
-            $fileName = "{$locale}.json";
-            File::put("{$langPath}/{$fileName}", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-            $files[] = [
-                'name' => $fileName,
-                'url' => url("lang/generated/{$fileName}"), // ✅ Downloadable link
-            ];
-        }
+        $translations = [];
+        DB::table('translations')
+            ->select('key', 'content', 'locale_code')
+            ->cursor()
+            ->each(function ($entry) use (&$translations) {
+                $translations[$entry->locale_code][$entry->key] = $entry->content;
+            });
 
         return response()->json([
             'success' => true,
-            'message' => 'Locale files exported successfully.',
-            'files' => $files,
+            'messages' => 'Files Ready for json export',
+            'files' => $translations,
         ]);
     }
 }

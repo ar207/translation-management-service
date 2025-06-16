@@ -48,6 +48,7 @@ beforeEach(function () {
 it('can list translations', function () {
     Translation::factory()->create([
         'key' => 'greeting.hello',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Hello',
         'tags' => ['homepage'],
@@ -64,6 +65,7 @@ it('can list translations', function () {
 it('can create a translation', function () {
     $response = postJson('/api/translations', [
         'key' => 'greeting2.hello',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Hello',
         'tags' => ['homepage'],
@@ -81,6 +83,7 @@ it('can create a translation', function () {
 it('can show a translation', function () {
     $translation = Translation::factory()->create([
         'key' => 'greeting3.hi',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Hi',
         'tags' => ['footer'],
@@ -98,6 +101,7 @@ it('can show a translation', function () {
 it('can update a translation', function () {
     $translation = Translation::factory()->create([
         'key' => 'greeting.bye',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Bye',
         'tags' => ['footer'],
@@ -105,6 +109,7 @@ it('can update a translation', function () {
 
     $response = putJson("/api/translations/{$translation->id}", [
         'key' => 'greeting.goodbye',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Goodbye',
         'tags' => ['footer', 'updated'],
@@ -121,6 +126,7 @@ it('can update a translation', function () {
 
 it('can delete a translation', function () {
     $translation = Translation::factory()->create([
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
     ]);
 
@@ -138,6 +144,7 @@ it('can delete a translation', function () {
 it('can export translations as JSON', function () {
     Translation::factory()->create([
         'key' => 'greeting5.hello',
+        'locale_code' => $this->localeCreated->short_code,
         'locale_id' => $this->localeCreated->id,
         'content' => 'Hello',
         'tags' => ['homepage'],
